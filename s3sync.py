@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding: utf-8
 
 import platform, os, sys, tarfile, logging
@@ -104,9 +105,13 @@ except ImportError:
 
 ############################################
 
-BACKUP_NAME = 's3sync_backup.tar.bz2'
-BACKUP_COPY = 's3sync_backup.{:%Y%m%d_%H%M%S}.tar.bz2'.format(datetime.datetime.now())
-BACKUP_FILE = os.path.join(BASE_DIR, BACKUP_NAME)
+BACKUP_EXT = '.tar.bz2'
+DEFAULT_BACKUP_NAME = 's3sync_backup'
+
+BACKUP_NAME = None
+BACKUP_COPY = None
+BACKUP_FILE = None
+
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 CONF_NAME = 's3sync.conf'
 CONF_FILE = os.path.join(SCRIPT_DIR, CONF_NAME)
@@ -121,26 +126,44 @@ print 'BASE_DIR: %s' % BASE_DIR
 
 ############################################
 
+def setup_logging(log_level='INFO'):
+    log_format = "%(message)s"
+    logging.addLevelName(15, 'FINE')
+    logging.basicConfig(format=log_format, level=log_level)
+
+def setup_backup_config(conf):
+    global BACKUP_NAME, BACKUP_COPY, BACKUP_FILE
+    name = DEFAULT_BACKUP_NAME
+    if conf['S3SYNC_BACKUP']:
+        name = conf['S3SYNC_BACKUP']
+    BACKUP_NAME = name + BACKUP_EXT
+    BACKUP_COPY = name + '.{:%Y%m%d_%H%M%S}'.format(datetime.datetime.now()) + BACKUP_EXT
+    BACKUP_FILE = os.path.join(BASE_DIR, BACKUP_NAME)
+
+def get_bucket_name(conf):
+    if conf['S3SYNC_AWS_S3_BUCKET']:
+        return conf['S3SYNC_AWS_S3_BUCKET']
+    else:
+        bucket_name = console.input_alert('S3 bucket name: ', '', '')
+        return bucket_name
+
 def load_config():
     try:
         with open(CONF_FILE, 'r') as conf_file:
             conf = json.load(conf_file)
             for key in conf:
                 os.environ[key] = conf[key]
-            logging.info('%s loaded to environment.' % CONF_NAME)
+            logging.info('%s loaded.' % CONF_NAME)
+            return conf
     except Exception as e:
         logging.warning('No %s, using AWS Credentials/Config' % CONF_NAME)
+    return None
 
 def aws_configure():
     install_awscli()
     import awscli.clidriver
     sys.argv.append('configure')
     return awscli.clidriver.main()    
-    
-def setup_logging(log_level='INFO'):
-    log_format = "%(message)s"
-    logging.addLevelName(15, 'FINE')
-    logging.basicConfig(format=log_format, level=log_level)
 
 def get_mode():
     mode = None
@@ -160,11 +183,6 @@ update script
 ''', "", "")
     return mode
 
-def get_bucket_name():
-    bucket_name = os.getenv('PYTHONISTA_AWS_S3_BUCKET', '')
-    if not bucket_name:
-        bucket_name = console.input_alert('S3 bucket name: ', '', bucket_name)
-    return bucket_name
 
 def friendly_path(name):
     if BASE_DIR in name:
@@ -303,7 +321,8 @@ def backup(s3, bucket_name):
 
 def main():
     setup_logging()
-    load_config()
+    cfg = load_config()
+    setup_backup_config(cfg)
     mode = get_mode()
 
     if mode == 'update script':
@@ -318,9 +337,9 @@ def main():
     elif mode == 'configure':
         aws_configure()
     else:
+        bucket_name = get_bucket_name(cfg)
         s3 = boto.connect_s3()
         # check if bucket exists
-        bucket_name = get_bucket_name()
         if not bucket_exists(s3, bucket_name):
             sys.exit()
         if mode == 'dry run':
