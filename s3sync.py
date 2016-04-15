@@ -104,18 +104,18 @@ except ImportError:
 
 ############################################
 
-BACKUP_NAME = 'pythonista_backup.tar.bz2'
-BACKUP_COPY = 'pythonista_backup.{:%Y%m%d_%H%M%S}.tar.bz2'.format(datetime.datetime.now())
+BACKUP_NAME = 's3sync_backup.tar.bz2'
+BACKUP_COPY = 's3sync_backup.{:%Y%m%d_%H%M%S}.tar.bz2'.format(datetime.datetime.now())
 BACKUP_FILE = os.path.join(BASE_DIR, BACKUP_NAME)
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONF_NAME = 's3backup.conf'
+CONF_NAME = 's3sync.conf'
 CONF_FILE = os.path.join(SCRIPT_DIR, CONF_NAME)
 TEST_NAME = '.s3test'
 TEST_ARCHIVE_NAME = TEST_NAME+'.tar.bz2'
 TEST_ARCHIVE = os.path.join(BASE_DIR, TEST_ARCHIVE_NAME)
 
-GITHUB_MASTER = 'https://raw.githubusercontent.com/khilnani/pythonista/master/tools/'
-S3BACKUP_FILE = 's3backup.py'
+GITHUB_MASTER = 'https://raw.githubusercontent.com/khilnani/s3sync.py/master/'
+SCRIPT_NAME = 's3sync.py'
 
 print 'BASE_DIR: %s' % BASE_DIR
 
@@ -181,7 +181,7 @@ def download_file(src, dest):
     logging.info('Done.')
 
 def update_script():
-    download_file(GITHUB_MASTER+S3BACKUP_FILE, os.path.join(SCRIPT_DIR, S3BACKUP_FILE))
+    download_file(GITHUB_MASTER+SCRIPT_NAME, os.path.join(SCRIPT_DIR, SCRIPT_NAME))
 
 def bucket_exists(s3, bucket_name):
     logging.info("Connecting to S3: %s" % bucket_name)
