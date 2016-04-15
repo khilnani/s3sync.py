@@ -34,5 +34,5 @@ Usage
 ## Installation
 
 - Download or clone the github repo, or:
-  - Pythonista console: `import urllib2; exec urllib2.urlopen('http://khl.io/s3backup').read()`
-  - Linux/Mac OS Terminal: `python -c "import urllib2; exec urllib2.urlopen('http://khl.io/s3backup').read()"`
+  - Pythonista console: `import urllib2; exec urllib2.urlopen('http://khl.io/s3sync-py').read()`
+  - Linux/Mac OS Terminal: `python -c "import urllib2; exec urllib2.urlopen('http://khl.io/s3sync-py').read()"`
