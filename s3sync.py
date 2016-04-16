@@ -113,6 +113,7 @@ BACKUP_COPY = None
 BACKUP_FILE = None
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+CONF_SAMPLE_NAME = 's3sync.sample.conf'
 CONF_NAME = 's3sync.conf'
 CONF_FILE = os.path.join(SCRIPT_DIR, CONF_NAME)
 TEST_NAME = '.s3test'
@@ -172,14 +173,15 @@ def get_mode():
     else:
         mode = console.input_alert('''
 Select an option:
-list
-archive
-extract
-restore
-backup
-configure
-dry run
-update script
+archive: create new archive
+backup: to S3
+dry run: test configuration
+extract: existing archive
+list: existing archive content
+restore: from S3
+setup aws: aws credentials
+setup file: custom config
+update script: download latest
 ''', "", "")
     return mode
 
@@ -200,6 +202,10 @@ def download_file(src, dest):
 
 def update_script():
     download_file(GITHUB_MASTER+SCRIPT_NAME, os.path.join(SCRIPT_DIR, SCRIPT_NAME))
+
+def setup_conf_file():
+    download_file(GITHUB_MASTER+CONF_SAMPLE_NAME, os.path.join(SCRIPT_DIR, CONF_NAME))
+    logging.info('Done. Please edit %s with your AWS credentials.'
 
 def bucket_exists(s3, bucket_name):
     logging.info("Connecting to S3: %s" % bucket_name)
@@ -334,8 +340,10 @@ def main():
         make_tarfile(BACKUP_FILE, BASE_DIR)
     elif mode == 'extract':
         extract_tarfile(BACKUP_FILE, BASE_DIR)
-    elif mode == 'configure':
+    elif mode == 'setup aws':
         aws_configure()
+    elif mode == 'setup file':
+        setup_conf_file()
     else:
         bucket_name = get_bucket_name(cfg)
         s3 = boto.connect_s3()
@@ -348,7 +356,6 @@ def main():
             restore(s3, bucket_name)
         elif mode == 'backup':
             backup(s3, bucket_name)
-
 
 ############################################
 
