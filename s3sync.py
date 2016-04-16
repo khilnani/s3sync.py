@@ -38,6 +38,7 @@ def install_boto():
         return True
     except ImportError:
         if install_stash():
+            from stash import stash
             _stash = stash.StaSh()
             print('StaSh version: ' + str(stash.__version__))
             print('Installing AWS boto library ...')
@@ -58,12 +59,13 @@ def install_awscli():
         return True
     except ImportError:
         if install_stash():
+            from stash import stash
             _stash = stash.StaSh()
             print('StaSh version: ' + str(stash.__version__))
             print('Installing AWS CLI library ...')
             _stash('pip install awscli')
             print('AWS CLI installed.')
-            print('Please restart Pythonista and re-run this script') 
+            print('Please restart Pythonista and re-run this script')
     try:
         import awscli.clidriver
         return True
@@ -161,10 +163,10 @@ def load_config():
     return None
 
 def aws_configure():
-    install_awscli()
-    import awscli.clidriver
-    sys.argv.append('configure')
-    return awscli.clidriver.main()    
+    if install_awscli():
+        import awscli.clidriver
+        sys.argv.append('configure')
+        return awscli.clidriver.main()    
 
 def get_mode():
     mode = None
@@ -205,7 +207,7 @@ def update_script():
 
 def setup_conf_file():
     download_file(GITHUB_MASTER+CONF_SAMPLE_NAME, os.path.join(SCRIPT_DIR, CONF_NAME))
-    logging.info('Done. Please edit %s with your AWS credentials.' % CONF_NAME)
+    logging.info('Please edit %s with your AWS credentials.' % CONF_NAME)
 
 def bucket_exists(s3, bucket_name):
     logging.info("Connecting to S3: %s" % bucket_name)
