@@ -19,10 +19,7 @@ By default, the script backups the following locations:
 Usage
 
 - Copy `s3sync.sample.conf` to the same directory as the `s3sync.py` script and rename to `s3sync.conf`
-
-> TODO: Allow s3sync.conf to reside in the directory being backedup to allow backing up different directories to different buckets
-
-> TODO: Customize backup file name, to support backing directories to the same S3 bucket
+- Update config file as appropriate.
 
 ### AWS Authentication
 
