@@ -135,7 +135,7 @@ def setup_logging(log_level='INFO'):
 def setup_backup_config(conf):
     global BACKUP_NAME, BACKUP_COPY, BACKUP_FILE
     name = DEFAULT_BACKUP_NAME
-    if conf['S3SYNC_BACKUP']:
+    if conf != None and conf['S3SYNC_BACKUP']:
         name = conf['S3SYNC_BACKUP']
     BACKUP_NAME = name + BACKUP_EXT
     BACKUP_COPY = name + '.{:%Y%m%d_%H%M%S}'.format(datetime.datetime.now()) + BACKUP_EXT
@@ -205,7 +205,7 @@ def update_script():
 
 def setup_conf_file():
     download_file(GITHUB_MASTER+CONF_SAMPLE_NAME, os.path.join(SCRIPT_DIR, CONF_NAME))
-    logging.info('Done. Please edit %s with your AWS credentials.'
+    logging.info('Done. Please edit %s with your AWS credentials.' % CONF_NAME)
 
 def bucket_exists(s3, bucket_name):
     logging.info("Connecting to S3: %s" % bucket_name)
