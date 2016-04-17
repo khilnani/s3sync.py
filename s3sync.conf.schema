@@ -1,31 +1,49 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "https://github.com/khilnani/s3sync.py",
+  "id": "/",
   "type": "object",
+  "title": "s3sync.py config file schema",
+  "description": "JSON Schema for the s3sync.py configuration file.",
+  "name": "/",
   "properties": {
     "AWS_ACCESS_KEY_ID": {
-      "id": "https://github.com/khilnani/s3sync.py/AWS_ACCESS_KEY_ID",
+      "id": "AWS_ACCESS_KEY_ID",
       "type": "string",
+      "title": "AWS_ACCESS_KEY_ID schema.",
+      "description": "Amazon AWS S3 key id. Optional if AWS Credentials/Config is setup.",
+      "name": "AWS_ACCESS_KEY_ID",
       "default": ""
     },
     "AWS_SECRET_ACCESS_KEY": {
-      "id": "https://github.com/khilnani/s3sync.py/AWS_SECRET_ACCESS_KEY",
+      "id": "AWS_SECRET_ACCESS_KEY",
       "type": "string",
+      "title": "AWS_SECRET_ACCESS_KEY schema.",
+      "description": "Amazon AWS S3 secret access key. Optional if AWS Credentials/Config is setup.",
+      "name": "AWS_SECRET_ACCESS_KEY",
       "default": ""
     },
     "AWS_DEFAULT_REGION": {
-      "id": "https://github.com/khilnani/s3sync.py/AWS_DEFAULT_REGION",
+      "id": "AWS_DEFAULT_REGION",
       "type": "string",
+      "title": "AWS_DEFAULT_REGION schema.",
+      "description": "Default AWS region. Optional if AWS Credentials/Config is setup.",
+      "name": "AWS_DEFAULT_REGION",
       "default": "us-east-1"
     },
     "S3SYNC_AWS_S3_BUCKET": {
-      "id": "https://github.com/khilnani/s3sync.py/S3SYNC_AWS_S3_BUCKET",
+      "id": "S3SYNC_AWS_S3_BUCKET",
       "type": "string",
+      "title": "S3SYNC_AWS_S3_BUCKET schema.",
+      "description": "S3 bucket to upload backup archives to.",
+      "name": "S3SYNC_AWS_S3_BUCKET",
       "default": "s3sync-backups"
     },
     "S3SYNC_BACKUP": {
-      "id": "https://github.com/khilnani/s3sync.py/S3SYNC_BACKUP",
+      "id": "S3SYNC_BACKUP",
       "type": "string",
+      "title": "S3SYNC_BACKUP schema.",
+      "description": "File name to use for uploaded backup archives.",
+      "name": "S3SYNC_BACKUP",
       "default": "s3sync_backup"
     }
   },
