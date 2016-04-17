@@ -4,6 +4,7 @@
 import platform
 import os
 import sys
+import shutil
 import tarfile
 import logging
 import datetime
@@ -211,13 +212,77 @@ def load_config():
     return None
 
 def friendly_path(name):
+    friendly = name
     if BASE_DIR in name:
-        return name.split(BASE_DIR)[-1]
-    return name
+        friendly = name.split(BASE_DIR)[-1]
+    if friendly == '':
+        friendly = '/'
+    return friendly
 
 def show_progress(num, total):
     per = int(num * 100/total)
     logging.info('  {}% completed'.format(per))
+
+def exclude_from_remove(full_path):
+    exact_list = ['/.Trash', '/Examples']
+    any_list = [SCRIPT_NAME, CONF_NAME]
+    
+    if friendly_path(full_path) in exact_list:
+        return True
+    for p in any_list:
+        if p in friendly_path(full_path):
+            return True
+    return False
+
+# evaluates only top level against exclude
+def delete_dir_content(from_dir, exclude=None, dry_run=False):
+    pre_msg = 'DRY RUN: ' if dry_run else ''
+    logging.info('%sDeleting files from %s' % (pre_msg, friendly_path(from_dir)))
+    try:
+        for f in os.listdir(from_dir):
+            full_path = os.path.join(from_dir,f)
+            if exclude and exclude(full_path):
+                logging.info('%sSkipping %s' % (pre_msg, friendly_path(full_path)))
+            elif not dry_run:
+                if os.path.isdir(full_path):
+                    shutil.rmtree(full_path)
+                else:
+                    os.remove(full_path)
+    except Exception as e:
+        logging.error('Error deleting directory content: %s' % from_dir)
+        logging.error(e)
+
+# assume dir is already empty, delete if not in exclude
+def remove_path(full_path, rel_path=None, exclude=None, dry_run=False):
+    pre_msg = 'DRY RUN: ' if dry_run else ''
+    if rel_path:
+        full_path = os.path.join(full_path, rel_path)
+    if exclude and exclude(full_path):
+        logging.info('  %sSkipping %s' % (pre_msg, friendly_path(full_path)))
+    else:
+        #logging.info('  %sRemoving %s' % (pre_msg, friendly_path(full_path)))
+        try:
+            if not dry_run:
+                if os.path.isdir(full_path):
+                    os.rmdir(full_path)
+                else:
+                    os.remove(full_path)
+        except Exception as e:
+            logging.error(e)
+
+# evaluates each file in the directory tree against exclude
+def deltree_dir_content(from_dir, exclude=None, dry_run=False):
+    pre_msg = 'DRY RUN: ' if dry_run else ''
+    logging.info('%sRemoving files from %s' % (pre_msg, friendly_path(from_dir)))
+    try:
+        for dirpath, dirnames, filenames in os.walk(from_dir, topdown=False):
+            for f in filenames:
+                remove_path(dirpath, f, exclude, dry_run)
+            for d in dirnames:
+                remove_path(dirpath, d, exclude, dry_run)
+    except Exception as e:
+        logging.error('Error removing directory content: %s' % from_dir)
+        logging.error(e)
 
 def download_file(src, dest):
     logging.info('Reading %s' % (src))
@@ -236,7 +301,7 @@ def remove_archive(archive_file):
     else:
         logging.info('Local archive %s removed.' % friendly_path(archive_file))
 
-def tar_exclude(file_path):
+def exclude_from_tar(file_path):
     excludes = ['/Icon', '/.DS_Store', '/.Trash', '/Examples', '/.git', '/'+TEST_NAME, '/'+TEST_ARCHIVE_NAME, '/'+BACKUP_NAME]
     friendly_file_path = friendly_path(file_path)
     for name in excludes:
@@ -248,7 +313,7 @@ def tar_exclude(file_path):
 def make_tarfile(filename, source_dir):
     logging.info('Creating %s ...' % friendly_path(filename))
     with tarfile.open(filename, "w:bz2") as tar:
-        tar.add(source_dir, arcname='.', exclude=tar_exclude)
+        tar.add(source_dir, arcname='.', exclude=exclude_from_tar)
     sz = os.path.getsize(filename) >> 20
     logging.info('Created %iMB %s' % (sz, friendly_path(filename) ))
 
@@ -353,8 +418,9 @@ def update(s3, bucket_name):
     extract_tarfile(BACKUP_FILE, BASE_DIR)
     #remove_archive(BACKUP_FILE)
 
-def restore(s3, backup_name):
-    logging.warning('Restore not implemented.')
+def restore(s3, bucket_name):
+    delete_dir_content(BASE_DIR, exclude=exclude_from_remove, dry_run=False)
+    update(s3, bucket_name)
 
 def backup(s3, bucket_name):
     remove_archive(BACKUP_FILE)
@@ -368,7 +434,7 @@ def snapshot(s3, bucket_name):
 ############################################
 ############################################
 
-actions_list = ['dry run: test setup', 'backup: copy/overwrite to S3', 'snapshot: create a copy of remote backup', 'restore: delete local and update from S3', 'update: update/overwrite local from S3', '', 'setup aws: credentials', 'setup conf: file', '', 'archive: create a local backup', 'extract: the local backup', 'list: local backup content', 'update script']
+actions_list = ['backup: Copy/overwrite to S3', 'snapshot: Create a copy of remote backup', 'restore: Delete local and update from S3', 'update: Update/overwrite local from S3', '', 'dry run: Test setup', 'setup aws: AWS credentials', 'setup conf: Custom config file', '', 'archive: Create a local backup', 'extract: Extract local backup', 'list: List files in local backup', 'update script: Get latest %s' % SCRIPT_NAME]
 
 def execute_action(action):
     action = action.split(':')[0] if action else None
