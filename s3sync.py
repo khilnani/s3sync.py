@@ -227,7 +227,7 @@ def show_progress(num, total):
     logging.info('  {}% completed'.format(per))
 
 def exclude_from_remove(full_path):
-    exact_list = ['/.Trash', '/Examples']
+    exact_list = ['/.Trash', '/Examples', '/.git']
     any_list = [SCRIPT_NAME, CONF_NAME]
     
     if friendly_path(full_path) in exact_list:
