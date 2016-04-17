@@ -1,18 +1,86 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import platform, os, sys, tarfile, logging
-import datetime, json, urllib2
+import platform
+import os
+import sys
+import tarfile
+import logging
+import datetime
+import json
+import urllib2
 
 ###########################################
+############################################
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
     os.environ['LC_CTYPE'] = 'en_US.UTF-8'
 
 machine = platform.machine()
-print 'Platform system:' + machine
+print 'Platform: ' + machine
 
 ###########################################
+############################################
+
+if 'iP' in machine:
+    import console
+    import ui
+
+    BASE_DIR = os.path.expanduser('~/Documents')
+   
+    class OptionsTableView(object):
+        def __init__(self, title='Options', data=None, callback=None):
+            self.view = ui.TableView(frame=(0, 0, 640, 640))
+            self.view.name = title
+            self.data_list = None
+            self.callback = callback
+            self.load(data)
+    
+        def load(self, data=None):
+            self.data_list = ui.ListDataSource(data)
+            self.data_list.move_enabled = False
+            self.data_list.delete_enabled = False
+            self.view.data_source = self.data_list
+            self.view.delegate = self
+            self.view.reload()
+            self.view.present('fullscreen', animated=False)
+
+        @ui.in_background
+        def tableview_did_select(self, tableview, section, row):
+            # Called when a row was selected.
+            sel = self.data_list.items[row]
+            if sel:
+                console.alert('Confirm action: \n%s' % sel, button1='Yes')
+                self.view.close()
+                self.callback(sel)
+    
+        def tableview_did_deselect(self, tableview, section, row):
+            # Called when a row was de-selected (in multiple selection mode).
+            pass
+    
+        def tableview_title_for_delete_button(self, tableview, section, row):
+            # Return the title for the 'swipe-to-***' button.
+            return 'Delete'
+else:
+    BASE_DIR = os.getcwd()
+
+    class console (object):
+        @staticmethod
+        def hud_alert(message, icon=None, duration=None):
+            print message
+
+        @staticmethod
+        def input_alert(title, message=None, input=None, ok_button_title=None, hide_cancel_button=False):
+            message = '' if message == None else message
+            ret = input
+            try:
+                ret = raw_input(title + '' + message + ': ')
+            except Exception as e:
+                print e
+            return ret
+
+############################################
+############################################
 
 def install_stash():
     try:
@@ -84,28 +152,9 @@ except ImportError as ie:
     sys.exit()
 
 ############################################
-
-try:
-    import console
-    BASE_DIR = os.path.expanduser('~/Documents')
-except ImportError:
-    BASE_DIR = os.getcwd()
-    class console (object):
-        @staticmethod
-        def hud_alert(message, icon=None, duration=None):
-            print message
-
-        @staticmethod
-        def input_alert(title, message=None, input=None, ok_button_title=None, hide_cancel_button=False):
-            message = '' if message == None else message
-            ret = input
-            try:
-                ret = raw_input(title + '' + message + ' :')
-            except Exception as e:
-                print e
-            return ret
-
 ############################################
+
+print('BASE_DIR: %s' % BASE_DIR)
 
 BACKUP_EXT = '.tar.bz2'
 DEFAULT_BACKUP_NAME = 's3sync_backup'
@@ -125,8 +174,7 @@ TEST_ARCHIVE = os.path.join(BASE_DIR, TEST_ARCHIVE_NAME)
 GITHUB_MASTER = 'https://raw.githubusercontent.com/khilnani/s3sync.py/master/'
 SCRIPT_NAME = 's3sync.py'
 
-print 'BASE_DIR: %s' % BASE_DIR
-
+############################################
 ############################################
 
 def setup_logging(log_level='INFO'):
@@ -134,7 +182,7 @@ def setup_logging(log_level='INFO'):
     logging.addLevelName(15, 'FINE')
     logging.basicConfig(format=log_format, level=log_level)
 
-def setup_backup_config(conf):
+def setup_backup_file_config(conf):
     global BACKUP_NAME, BACKUP_COPY, BACKUP_FILE
     name = DEFAULT_BACKUP_NAME
     if conf != None and conf['S3SYNC_BACKUP']:
@@ -162,36 +210,14 @@ def load_config():
         logging.warning('No %s, using AWS Credentials/Config' % CONF_NAME)
     return None
 
-def aws_configure():
-    if install_awscli():
-        import awscli.clidriver
-        sys.argv.append('configure')
-        return awscli.clidriver.main()    
-
-def get_mode():
-    mode = None
-    if len(sys.argv) > 1:
-        mode =sys.argv[1]
-    else:
-        mode = console.input_alert('''
-Select an option:
-archive: create new archive
-backup: to S3
-dry run: test configuration
-extract: existing archive
-list: existing archive content
-restore: from S3
-setup aws: aws credentials
-setup file: custom config
-update script: download latest
-''', "", "")
-    return mode
-
-
 def friendly_path(name):
     if BASE_DIR in name:
         return name.split(BASE_DIR)[-1]
     return name
+
+def show_progress(num, total):
+    per = int(num * 100/total)
+    logging.info('  {}% completed'.format(per))
 
 def download_file(src, dest):
     logging.info('Reading %s' % (src))
@@ -201,25 +227,6 @@ def download_file(src, dest):
     f.write(file_content)
     f.close()
     logging.info('Done.')
-
-def update_script():
-    download_file(GITHUB_MASTER+SCRIPT_NAME, os.path.join(SCRIPT_DIR, SCRIPT_NAME))
-
-def setup_conf_file():
-    download_file(GITHUB_MASTER+CONF_SAMPLE_NAME, os.path.join(SCRIPT_DIR, CONF_NAME))
-    logging.info('Please edit %s with your AWS credentials.' % CONF_NAME)
-
-def bucket_exists(s3, bucket_name):
-    logging.info("Connecting to S3: %s" % bucket_name)
-    bucket_exists = s3.lookup(bucket_name)
-    if bucket_exists is None:
-        logging.error("Bucket %s does not exist.", bucket_name)
-        logging.info("Following buckets found:")
-        for b in s3.get_all_buckets():
-            logging.info('  %s' % b.name)
-        logging.info("Aborting sync.")
-        return False
-    return True
 
 def remove_archive(archive_file):
     try:
@@ -264,9 +271,19 @@ def list_tarfile(filename, dest_dir):
     except IOError:
         logging.info('Archive not found.')
 
-def show_progress(num, total):
-    per = int(num * 100/total)
-    logging.info('  {}% completed'.format(per))
+############################################
+
+def bucket_exists(s3, bucket_name):
+    logging.info("Connecting to S3: %s" % bucket_name)
+    bucket_exists = s3.lookup(bucket_name)
+    if bucket_exists is None:
+        logging.error("Bucket %s does not exist.", bucket_name)
+        logging.info("Following buckets found:")
+        for b in s3.get_all_buckets():
+            logging.info('  %s' % b.name)
+        logging.info("Aborting sync.")
+        return False
+    return True
 
 def test_upload(s3, bucket_name):
     logging.info('Testing upload of %s to S3 ...' % TEST_NAME)
@@ -291,12 +308,15 @@ def upload_archive(s3, bucket_name, key, fl):
     k.set_contents_from_filename(fl, replace=True, cb=show_progress, num_cb=200)
     logging.info('Upload complete.')
 
-def duplicate_key(s3,bucket_name, key, dest_key):
-    logging.info('Creating backup copy ...')
+def snapshot_archive(s3,bucket_name, key, dest_key):
+    logging.info('Creating remote backup snapshot ...')
     bucket = s3.get_bucket(bucket_name)
     k = bucket.get_key(key, validate=True)
-    k.copy(bucket_name, dest_key)
-    logging.info('Backup copy created.')
+    if k:
+        k.copy(bucket_name, dest_key)
+        logging.info('Snapshot created.')
+    else:
+        logging.info('No remote backup found.')
 
 def download_archive(s3, bucket_name, key, fl):
     logging.info('Downloading from S3 ...')
@@ -305,6 +325,21 @@ def download_archive(s3, bucket_name, key, fl):
     k.get_contents_to_filename(fl, cb=show_progress, num_cb=200)
     logging.info('Download complete.')
 
+############################################
+
+def update_script():
+    download_file(GITHUB_MASTER+SCRIPT_NAME, os.path.join(SCRIPT_DIR, SCRIPT_NAME))
+
+def aws_configure():
+    if install_awscli():
+        import awscli.clidriver
+        sys.argv.append('configure')
+        return awscli.clidriver.main()
+
+def setup_conf_file():
+    download_file(GITHUB_MASTER+CONF_SAMPLE_NAME, os.path.join(SCRIPT_DIR, CONF_NAME))
+    logging.info('Please edit %s with your AWS credentials.' % CONF_NAME)
+
 def dry_run(s3, bucket_name):
     remove_archive(TEST_ARCHIVE)
     make_tarfile(TEST_ARCHIVE, BASE_DIR)
@@ -312,39 +347,50 @@ def dry_run(s3, bucket_name):
     test_upload(s3, bucket_name)
     test_download(s3, bucket_name)
 
-def restore(s3, bucket_name):
+def update(s3, bucket_name):
     remove_archive(BACKUP_FILE)
     download_archive(s3, bucket_name, BACKUP_NAME, BACKUP_FILE)
     extract_tarfile(BACKUP_FILE, BASE_DIR)
     #remove_archive(BACKUP_FILE)
 
+def restore(s3, backup_name):
+    logging.warning('Restore not implemented.')
+
 def backup(s3, bucket_name):
     remove_archive(BACKUP_FILE)
     make_tarfile(BACKUP_FILE, BASE_DIR)
     upload_archive(s3, bucket_name, BACKUP_NAME, BACKUP_FILE)
-    duplicate_key(s3, bucket_name, BACKUP_NAME, BACKUP_COPY)
     #remove_archive(BACKUP_FILE)
 
+def snapshot(s3, bucket_name):
+    snapshot_archive(s3, bucket_name, BACKUP_NAME, BACKUP_COPY)
+
+############################################
 ############################################
 
-def main():
-    setup_logging()
-    cfg = load_config()
-    setup_backup_config(cfg)
-    mode = get_mode()
+actions_list = ['dry run: test setup', 'backup: copy/overwrite to S3', 'snapshot: create a copy of remote backup', 'restore: delete local and update from S3', 'update: update/overwrite local from S3', '', 'setup aws: credentials', 'setup conf: file', '', 'archive: create a local backup', 'extract: the local backup', 'list: local backup content', 'update script']
 
-    if mode == 'update script':
+def execute_action(action):
+    action = action.split(':')[0] if action else None
+    logging.info('Executing action: ' + str(action))
+    
+    cfg = load_config()
+    setup_backup_file_config(cfg)
+
+    if action == None or action.strip() == '':
+        logging.warning('No action specified.')
+    elif action == 'update script':
         update_script()
-    elif mode == 'list':
+    elif action == 'list':
         list_tarfile(BACKUP_FILE, BASE_DIR)
-    elif mode == 'archive':
+    elif action == 'archive':
         remove_archive(BACKUP_FILE)
         make_tarfile(BACKUP_FILE, BASE_DIR)
-    elif mode == 'extract':
+    elif action == 'extract':
         extract_tarfile(BACKUP_FILE, BASE_DIR)
-    elif mode == 'setup aws':
+    elif action == 'setup aws':
         aws_configure()
-    elif mode == 'setup file':
+    elif action == 'setup conf':
         setup_conf_file()
     else:
         bucket_name = get_bucket_name(cfg)
@@ -352,13 +398,47 @@ def main():
         # check if bucket exists
         if not bucket_exists(s3, bucket_name):
             sys.exit()
-        if mode == 'dry run':
+        if action == 'dry run':
             dry_run(s3, bucket_name)
-        elif mode == 'restore':
+        elif action == 'update':
+            update(s3, bucket_name)
+        elif action == 'restore':
             restore(s3, bucket_name)
-        elif mode == 'backup':
+        elif action == 'backup':
             backup(s3, bucket_name)
+        elif action == 'snapshot':
+            snapshot(s3, bucket_name)
+        else:
+            logging.warning('No matching action found.')
 
+def get_ios_user_selection():
+    options = OptionsTableView(data=actions_list, title='Select an action', callback=execute_action)
+
+def get_default_user_selection():
+    mode = None
+    if len(sys.argv) > 1:
+        mode =sys.argv[1]
+    else:
+        instructions = 'Please type an action:\n\n' + '\n'.join(actions_list)
+        mode = console.input_alert('Actions', instructions)
+    execute_action(mode)
+
+def get_user_selection():
+    sel = None
+    if len(sys.argv) > 1:
+        sel = sys.argv[1]
+    elif 'iP' in machine:
+        get_ios_user_selection()
+    else:
+        get_default_user_selection()
+
+############################################
+
+def main():
+    setup_logging()
+    get_user_selection()
+
+############################################
 ############################################
 
 if __name__ == '__main__':
