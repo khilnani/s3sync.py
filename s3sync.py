@@ -14,7 +14,7 @@ import urllib2
 ###########################################
 ############################################
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -227,7 +227,9 @@ def show_progress(num, total):
     logging.info('  {}% completed'.format(per))
 
 def exclude_from_remove(full_path):
+    # match name and path
     exact_list = ['/.Trash', '/Examples', '/.git']
+    # match name, in any path
     any_list = [SCRIPT_NAME, CONF_NAME]
     
     if friendly_path(full_path) in exact_list:
@@ -437,7 +439,21 @@ def snapshot(s3, bucket_name):
 ############################################
 ############################################
 
-actions_list = ['backup: Copy/overwrite to S3', 'snapshot: Create a copy of remote backup', 'restore: Delete local and update from S3', 'update: Update/overwrite local from S3', '', 'dry run: Test setup', 'setup aws: AWS credentials', 'setup conf: Custom config file', '', 'archive: Create a local backup', 'extract: Extract local backup', 'list: List files in local backup', 'update script: Get latest %s' % SCRIPT_NAME]
+actions_list = [
+    'backup: Copy/overwrite to S3',
+    'snapshot: Create a copy of remote backup',
+    'restore: Delete local and update from S3',
+    'update: Update/overwrite local from S3',
+    '',
+    'dry run: Test setup',
+    'setup aws: AWS credentials',
+    'setup conf: Custom config file',
+    '',
+    'archive: Create a local backup', 
+    'extract: Extract local backup',
+    'list: List files in local backup',
+    'update script: Get latest %s' % SCRIPT_NAME
+    ]
 
 def execute_action(action):
     action = action.split(':')[0] if action else None
