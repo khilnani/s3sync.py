@@ -14,7 +14,7 @@ import urllib2
 ###########################################
 ############################################
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -321,7 +321,7 @@ def make_tarfile(filename, source_dir):
     logging.info('Created %iMB %s' % (sz, friendly_path(filename) ))
 
 def extract_tarfile(filename, dest_dir):
-    logging.info('Extracting %s to %s...' % (friendly_path(filename), friendly_path(dest_dir)))
+    logging.info('Extracting %s to %s ...' % (friendly_path(filename), friendly_path(dest_dir)))
     try:
         fl = tarfile.open(filename, "r:bz2")
         fl.extractall(dest_dir)
@@ -331,7 +331,7 @@ def extract_tarfile(filename, dest_dir):
         logging.error(e)
 
 def list_tarfile(filename, dest_dir):
-    logging.info('Listing % ...' % friendly_path(filename))
+    logging.info('Listing %s ...' % friendly_path(filename))
     try:
         fl = tarfile.open(filename, "r:bz2")
         fl.list(verbose=False)
@@ -488,8 +488,8 @@ def get_default_user_selection():
     if len(sys.argv) > 1:
         mode =sys.argv[1]
     else:
-        instructions = 'Please type an action:\n\n' + '\n'.join(actions_list)
-        mode = console.input_alert('Actions', instructions)
+        selections = '\n'.join(actions_list) + '\n'
+        mode = console.input_alert('\nPlease type an action:\n\n', selections)
     execute_action(mode)
 
 def get_user_selection():
