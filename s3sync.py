@@ -14,6 +14,9 @@ import urllib2
 ###########################################
 ############################################
 
+__version__ = '0.3.0'
+print 'Version: ' + __version__
+
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
     os.environ['LC_CTYPE'] = 'en_US.UTF-8'
 
