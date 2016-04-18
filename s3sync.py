@@ -15,7 +15,7 @@ import urllib2
 ###########################################
 ############################################
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -443,8 +443,8 @@ def snapshot(s3, bucket_name):
 actions_list = [
     'backup: Copy/overwrite to S3',
     'snapshot: Create a copy of remote backup',
-    'restore: Delete local and update from S3',
     'update: Update/overwrite local from S3',
+    'restore: Delete local and update from S3',
     '',
     'dry run: Test setup',
     'setup aws: AWS credentials',
