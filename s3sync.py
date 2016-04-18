@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+# https://github.com/khilnani/s3sync.py
 
 import platform
 import os
