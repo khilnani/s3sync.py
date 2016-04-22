@@ -8,6 +8,10 @@ to an Amazon AWS S3 backup. While designed for the iOS Pythonista application,
 the script supports usage on a linux/mac os environment to share code between 
 the iOS Pythonista app and a regular laptop/server.
 
+License:
+The MIT License (MIT)
+Copyright (c) 2016 Nik Khilnani
+
 Github:
 https://github.com/khilnani/s3sync.py
 
