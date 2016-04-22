@@ -1,6 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
-# https://github.com/khilnani/s3sync.py
+
+"""
+Description:
+A python script to backup and restore files from the working directory 
+to an Amazon AWS S3 backup. While designed for the iOS Pythonista application, 
+the script supports usage on a linux/mac os environment to share code between 
+the iOS Pythonista app and a regular laptop/server.
+
+Code:
+https://github.com/khilnani/s3sync.py
+
+Configuration:
+- Setup ~/.aws/ AWS Credentials/Config, or boto.cfg, OR
+- Rename 's3sync.sample.conf' to 's3sync.conf' and update values
+"""
 
 import platform
 import os
