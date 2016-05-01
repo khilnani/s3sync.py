@@ -214,6 +214,7 @@ def setup_logging(log_level='INFO'):
         for ea in sys.argv:
             if ea in ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'):
                 log_level = ea
+                sys.argv.remove(ea)
                 break
 
     logger.setLevel(log_level)
@@ -549,11 +550,14 @@ def get_user_selection():
 ############################################
 
 def main():
-    setup_logging()
     get_user_selection()
 
 ############################################
 ############################################
 
 if __name__ == '__main__':
-    main()
+    try:
+        setup_logging()
+        main()
+    except KeyboardInterrupt as e:
+        logger.error('User forced exit.')
