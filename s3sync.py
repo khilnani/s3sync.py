@@ -3,9 +3,9 @@
 
 """
 Description:
-A python script to backup and restore files from the working directory 
-to an Amazon AWS S3 backup. While designed for the iOS Pythonista application, 
-the script supports usage on a linux/mac os environment to share code between 
+A python script to backup and restore files from the working directory
+to an Amazon AWS S3 backup. While designed for the iOS Pythonista application,
+the script supports usage on a linux/mac os environment to share code between
 the iOS Pythonista app and a regular laptop/server.
 
 License:
@@ -33,7 +33,9 @@ import urllib2
 ###########################################
 ############################################
 
-__version__ = '0.3.3'
+logger = None
+
+__version__ = '0.3.4'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -50,7 +52,7 @@ if 'iP' in machine:
     import ui
 
     BASE_DIR = os.path.expanduser('~/Documents')
-   
+
     class OptionsTableView(object):
         def __init__(self, title='Options', data=None, callback=None):
             self.view = ui.TableView(frame=(0, 0, 640, 640))
@@ -58,7 +60,7 @@ if 'iP' in machine:
             self.data_list = None
             self.callback = callback
             self.load(data)
-    
+
         def load(self, data=None):
             self.data_list = ui.ListDataSource(data)
             self.data_list.move_enabled = False
@@ -76,11 +78,11 @@ if 'iP' in machine:
                 console.alert('Confirm action: \n%s' % sel, button1='Yes')
                 self.view.close()
                 self.callback(sel)
-    
+
         def tableview_did_deselect(self, tableview, section, row):
             # Called when a row was de-selected (in multiple selection mode).
             pass
-    
+
         def tableview_title_for_delete_button(self, tableview, section, row):
             # Return the title for the 'swipe-to-***' button.
             return 'Delete'
@@ -118,7 +120,7 @@ def install_stash():
         return True
     except ImportError:
         return False
-    
+
     return False
 
 def install_boto():
@@ -135,7 +137,7 @@ def install_boto():
             print('Installing AWS boto library ...')
             _stash('pip install boto')
             print('AWS boto library installed.')
-            print('Please restart Pythonista and re-run this script') 
+            print('Please restart Pythonista and re-run this script')
     try:
         import boto
         from boto.s3.key import Key
@@ -161,7 +163,7 @@ def install_awscli():
         import awscli.clidriver
         return True
     except ImportError:
-        return False        
+        return False
 
 try:
     import boto
@@ -201,9 +203,21 @@ SCRIPT_NAME = 's3sync.py'
 ############################################
 
 def setup_logging(log_level='INFO'):
+    global logger
+
     log_format = "%(message)s"
     logging.addLevelName(15, 'FINE')
-    logging.basicConfig(format=log_format, level=log_level)
+    logging.basicConfig(format=log_format)
+    logger = logging.getLogger(__name__)
+
+    if len(sys.argv) > 1:
+        for ea in sys.argv:
+            if ea in ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'):
+                log_level = ea
+                break
+
+    logger.setLevel(log_level)
+    print('Log Level: %s' % log_level )
 
 def setup_backup_file_config(conf):
     global BACKUP_NAME, BACKUP_COPY, BACKUP_FILE
@@ -227,10 +241,10 @@ def load_config():
             conf = json.load(conf_file)
             for key in conf:
                 os.environ[key] = conf[key]
-            logging.info('%s loaded.' % CONF_NAME)
+            logger.info('%s loaded.' % CONF_NAME)
             return conf
     except Exception as e:
-        logging.warning('No %s, using AWS Credentials/Config' % CONF_NAME)
+        logger.warning('No %s, using AWS Credentials/Config' % CONF_NAME)
     return None
 
 def friendly_path(name):
@@ -243,14 +257,14 @@ def friendly_path(name):
 
 def show_progress(num, total):
     per = int(num * 100/total)
-    logging.info('  {}% completed'.format(per))
+    logger.info('  {}% completed'.format(per))
 
 def exclude_from_remove(full_path):
     # match name and path
     exact_list = ['/.Trash', '/Examples', '/.git']
     # match name, in any path
     any_list = [SCRIPT_NAME, CONF_NAME]
-    
+
     if friendly_path(full_path) in exact_list:
         return True
     for p in any_list:
@@ -261,20 +275,20 @@ def exclude_from_remove(full_path):
 # evaluates only top level against exclude
 def delete_dir_content(from_dir, exclude=None, dry_run=False):
     pre_msg = 'DRY RUN: ' if dry_run else ''
-    logging.info('%sDeleting files from %s' % (pre_msg, friendly_path(from_dir)))
+    logger.info('%sDeleting files from %s' % (pre_msg, friendly_path(from_dir)))
     try:
         for f in os.listdir(from_dir):
             full_path = os.path.join(from_dir,f)
             if exclude and exclude(full_path):
-                logging.info('%sSkipping %s' % (pre_msg, friendly_path(full_path)))
+                logger.info('%sSkipping %s' % (pre_msg, friendly_path(full_path)))
             elif not dry_run:
                 if os.path.isdir(full_path):
                     shutil.rmtree(full_path)
                 else:
                     os.remove(full_path)
     except Exception as e:
-        logging.error('Error deleting directory content: %s' % from_dir)
-        logging.error(e)
+        logger.error('Error deleting directory content: %s' % from_dir)
+        logger.error(e)
 
 # assume dir is already empty, delete if not in exclude
 def remove_path(full_path, rel_path=None, exclude=None, dry_run=False):
@@ -282,9 +296,9 @@ def remove_path(full_path, rel_path=None, exclude=None, dry_run=False):
     if rel_path:
         full_path = os.path.join(full_path, rel_path)
     if exclude and exclude(full_path):
-        logging.info('  %sSkipping %s' % (pre_msg, friendly_path(full_path)))
+        logger.info('  %sSkipping %s' % (pre_msg, friendly_path(full_path)))
     else:
-        #logging.info('  %sRemoving %s' % (pre_msg, friendly_path(full_path)))
+        #logger.info('  %sRemoving %s' % (pre_msg, friendly_path(full_path)))
         try:
             if not dry_run:
                 if os.path.isdir(full_path):
@@ -292,12 +306,12 @@ def remove_path(full_path, rel_path=None, exclude=None, dry_run=False):
                 else:
                     os.remove(full_path)
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
 
 # evaluates each file in the directory tree against exclude
 def deltree_dir_content(from_dir, exclude=None, dry_run=False):
     pre_msg = 'DRY RUN: ' if dry_run else ''
-    logging.info('%sRemoving files from %s' % (pre_msg, friendly_path(from_dir)))
+    logger.info('%sRemoving files from %s' % (pre_msg, friendly_path(from_dir)))
     try:
         for dirpath, dirnames, filenames in os.walk(from_dir, topdown=False):
             for f in filenames:
@@ -305,114 +319,114 @@ def deltree_dir_content(from_dir, exclude=None, dry_run=False):
             for d in dirnames:
                 remove_path(dirpath, d, exclude, dry_run)
     except Exception as e:
-        logging.error('Error removing directory content: %s' % from_dir)
-        logging.error(e)
+        logger.error('Error removing directory content: %s' % from_dir)
+        logger.error(e)
 
 def download_file(src, dest):
-    logging.info('Reading %s' % (src))
+    logger.info('Reading %s' % (src))
     file_content = urllib2.urlopen(src).read()
-    logging.info('Writing %s' % dest)
+    logger.info('Writing %s' % dest)
     f = open(dest, 'w')
     f.write(file_content)
     f.close()
-    logging.info('Done.')
+    logger.info('Done.')
 
 def remove_archive(archive_file):
     try:
         os.remove(archive_file)
     except:
-        logging.info('No local archive %s found.' % friendly_path(archive_file))
+        logger.info('No local archive %s found.' % friendly_path(archive_file))
     else:
-        logging.info('Local archive %s removed.' % friendly_path(archive_file))
+        logger.info('Local archive %s removed.' % friendly_path(archive_file))
 
 def exclude_from_tar(file_path):
     excludes = ['/Icon', '/.DS_Store', '/.Trash', '/Examples', '/.git', '/'+TEST_NAME, '/'+TEST_ARCHIVE_NAME, '/'+BACKUP_NAME]
     friendly_file_path = friendly_path(file_path)
     for name in excludes:
         if (name == friendly_file_path):
-            logging.info('Skipping %s' % friendly_file_path)
+            logger.info('Skipping %s' % friendly_file_path)
             return True
     return False
 
 def make_tarfile(filename, source_dir):
-    logging.info('Creating %s ...' % friendly_path(filename))
+    logger.info('Creating %s ...' % friendly_path(filename))
     with tarfile.open(filename, "w:bz2") as tar:
         tar.add(source_dir, arcname='.', exclude=exclude_from_tar)
     sz = os.path.getsize(filename) >> 20
-    logging.info('Created %iMB %s' % (sz, friendly_path(filename) ))
+    logger.info('Created %iMB %s' % (sz, friendly_path(filename) ))
 
 def extract_tarfile(filename, dest_dir):
-    logging.info('Extracting %s to %s ...' % (friendly_path(filename), friendly_path(dest_dir)))
+    logger.info('Extracting %s to %s ...' % (friendly_path(filename), friendly_path(dest_dir)))
     try:
         fl = tarfile.open(filename, "r:bz2")
         fl.extractall(dest_dir)
-        logging.info('Archive extracted.')
+        logger.info('Archive extracted.')
     except IOError:
-        logging.error('Archive extraction error.')
-        logging.error(e)
+        logger.error('Archive extraction error.')
+        logger.error(e)
 
 def list_tarfile(filename, dest_dir):
-    logging.info('Listing %s ...' % friendly_path(filename))
+    logger.info('Listing %s ...' % friendly_path(filename))
     try:
         fl = tarfile.open(filename, "r:bz2")
         fl.list(verbose=False)
-        logging.info('Listing complete.')
+        logger.info('Listing complete.')
     except IOError:
-        logging.info('Archive not found.')
+        logger.info('Archive not found.')
 
 ############################################
 
 def bucket_exists(s3, bucket_name):
-    logging.info("Connecting to S3: %s" % bucket_name)
+    logger.info("Connecting to S3: %s" % bucket_name)
     bucket_exists = s3.lookup(bucket_name)
     if bucket_exists is None:
-        logging.error("Bucket %s does not exist.", bucket_name)
-        logging.info("Following buckets found:")
+        logger.error("Bucket %s does not exist.", bucket_name)
+        logger.info("Following buckets found:")
         for b in s3.get_all_buckets():
-            logging.info('  %s' % b.name)
-        logging.info("Aborting sync.")
+            logger.info('  %s' % b.name)
+        logger.info("Aborting sync.")
         return False
     return True
 
 def test_upload(s3, bucket_name):
-    logging.info('Testing upload of %s to S3 ...' % TEST_NAME)
+    logger.info('Testing upload of %s to S3 ...' % TEST_NAME)
     bucket = s3.get_bucket(bucket_name)
     k = bucket.get_key(TEST_NAME, validate=False)
     k.set_contents_from_string(TEST_NAME, replace=True, cb=show_progress, num_cb=200)
-    logging.info('Upload test complete.')
+    logger.info('Upload test complete.')
 
 def test_download(s3, bucket_name):
-    logging.info('Testing download of %s from S3 ...' % TEST_NAME)
+    logger.info('Testing download of %s from S3 ...' % TEST_NAME)
     bucket = s3.get_bucket(bucket_name)
     k = bucket.get_key(TEST_NAME, validate=True)
     content = k.get_contents_as_string(cb=show_progress, num_cb=200)
     if content != TEST_NAME:
-        logging.error('Test file %s read from S3 is not the one created.' % TEST_NAME)
-    logging.info('Download test complete.')
+        logger.error('Test file %s read from S3 is not the one created.' % TEST_NAME)
+    logger.info('Download test complete.')
 
 def upload_archive(s3, bucket_name, key, fl):
-    logging.info('Uploading to S3 ...')
+    logger.info('Uploading to S3 ...')
     bucket = s3.get_bucket(bucket_name)
     k = bucket.get_key(key , validate=False)
     k.set_contents_from_filename(fl, replace=True, cb=show_progress, num_cb=200)
-    logging.info('Upload complete.')
+    logger.info('Upload complete.')
 
 def snapshot_archive(s3,bucket_name, key, dest_key):
-    logging.info('Creating remote backup snapshot ...')
+    logger.info('Creating remote backup snapshot ...')
     bucket = s3.get_bucket(bucket_name)
     k = bucket.get_key(key, validate=True)
     if k:
         k.copy(bucket_name, dest_key)
-        logging.info('Snapshot created.')
+        logger.info('Snapshot created.')
     else:
-        logging.info('No remote backup found.')
+        logger.info('No remote backup found.')
 
 def download_archive(s3, bucket_name, key, fl):
-    logging.info('Downloading from S3 ...')
+    logger.info('Downloading from S3 ...')
     bucket = s3.get_bucket(bucket_name)
     k = bucket.get_key(key , validate=True)
     k.get_contents_to_filename(fl, cb=show_progress, num_cb=200)
-    logging.info('Download complete.')
+    logger.info('Download complete.')
 
 ############################################
 
@@ -427,7 +441,7 @@ def aws_configure():
 
 def setup_conf_file():
     download_file(GITHUB_MASTER+CONF_SAMPLE_NAME, os.path.join(SCRIPT_DIR, CONF_NAME))
-    logging.info('Please edit %s with your AWS credentials.' % CONF_NAME)
+    logger.info('Please edit %s with your AWS credentials.' % CONF_NAME)
 
 def dry_run(s3, bucket_name):
     remove_archive(TEST_ARCHIVE)
@@ -468,7 +482,7 @@ actions_list = [
     'setup aws: AWS credentials',
     'setup conf: Custom config file',
     '',
-    'archive: Create a local backup', 
+    'archive: Create a local backup',
     'extract: Extract local backup',
     'list: List files in local backup',
     'update script: Get latest %s' % SCRIPT_NAME
@@ -476,13 +490,13 @@ actions_list = [
 
 def execute_action(action):
     action = action.split(':')[0] if action else None
-    logging.info('Executing action: ' + str(action))
-    
+    logger.info('Executing action: ' + str(action))
+
     cfg = load_config()
     setup_backup_file_config(cfg)
 
     if action == None or action.strip() == '':
-        logging.warning('No action specified.')
+        logger.warning('No action specified.')
     elif action == 'update script':
         update_script()
     elif action == 'list':
@@ -513,24 +527,20 @@ def execute_action(action):
         elif action == 'snapshot':
             snapshot(s3, bucket_name)
         else:
-            logging.warning('No matching action found.')
+            logger.error('No matching action found for %s.' % action)
 
 def get_ios_user_selection():
     options = OptionsTableView(data=actions_list, title='Select an action', callback=execute_action)
 
 def get_default_user_selection():
-    mode = None
-    if len(sys.argv) > 1:
-        mode =sys.argv[1]
-    else:
-        selections = '\n'.join(actions_list) + '\n'
-        mode = console.input_alert('\nPlease type an action:\n\n', selections)
+    selections = '\n'.join(actions_list) + '\n'
+    mode = console.input_alert('\nPlease type an action:\n\n', selections)
     execute_action(mode)
 
 def get_user_selection():
-    sel = None
     if len(sys.argv) > 1:
-        sel = sys.argv[1]
+        mode = sys.argv[1]
+        execute_action(mode)
     elif 'iP' in machine:
         get_ios_user_selection()
     else:
