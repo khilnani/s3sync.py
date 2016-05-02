@@ -20,6 +20,8 @@ Configuration:
 - Rename 's3sync.sample.conf' to 's3sync.conf' and update values
 """
 
+############################################
+
 import platform
 import os
 import sys
@@ -30,7 +32,7 @@ import datetime
 import json
 import urllib2
 
-###########################################
+############################################
 ############################################
 
 logger = None
@@ -44,7 +46,7 @@ if os.environ.get('LC_CTYPE', '') == 'UTF-8':
 machine = platform.machine()
 print 'Platform: ' + machine
 
-###########################################
+############################################
 ############################################
 
 if 'iP' in machine:
@@ -566,3 +568,5 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt as e:
         logger.error('User forced exit.')
+
+############################################
