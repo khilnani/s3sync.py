@@ -35,7 +35,7 @@ import urllib2
 
 logger = None
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -205,14 +205,19 @@ SCRIPT_NAME = 's3sync.py'
 def setup_logging(log_level='INFO'):
     global logger
 
+    logging.addLevelName(9, 'TRACE')
+    def trace(self, message, *args, **kws):
+        if self.isEnabledFor(9):
+            self._log(9, message, args, **kws)
+    logging.Logger.trace = trace
+    
     log_format = "%(message)s"
-    logging.addLevelName(15, 'FINE')
     logging.basicConfig(format=log_format)
     logger = logging.getLogger(__name__)
 
     if len(sys.argv) > 1:
         for ea in sys.argv:
-            if ea in ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'):
+            if ea in ('CRITICAL', 'ERROR', 'WARNING', 'INFO' , 'DEBUG', 'TRACE', 'NOTSET'):
                 log_level = ea
                 sys.argv.remove(ea)
                 break
