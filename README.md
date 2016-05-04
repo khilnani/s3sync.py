@@ -1,6 +1,10 @@
 ## s3sync.py
 
-A python script to backup and restore files from the working directory to an Amazon AWS S3 backup. While designed for the iOS [Pythonista](http://omz-software.com/pythonista/) application, the script supports usage on a linux/mac os environment to share code between the iOS Pythonista app and a regular laptop/server.
+Backup and restore files from the working directory to an Amazon AWS S3 backup. 
+
+Supports both, iOS [Pythonista](http://omz-software.com/pythonista/) and Desktop Linux/Mac OS
+
+> For example, I use this to share/sync code between my iPhone, iPad, and Mac laptop.
 
 By default, the script backups the following locations:
 
