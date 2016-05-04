@@ -1,6 +1,6 @@
 ## s3sync.py
 
-Backup and restore files from the working directory to an Amazon AWS S3 backup. 
+Backup and restore files from the working directory to an Amazon AWS S3 bucket. 
 
 Supports both, iOS [Pythonista](http://omz-software.com/pythonista/) and Desktop Linux/Mac OS
 
