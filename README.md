@@ -8,8 +8,8 @@ By default, the script backups the following locations:
   - Files downloaded to and restored from the `~/Documents` directory.
 - Linux/mac os:
   - Files downloaded to and restored from the working directory, not the directory containing the script.
-  - Example: From this directory, run `python s3sync.py [ACTION]`
-    - ACTION: Optional, any of the commands displayed when the script is run.
+  - Example: Run `python s3sync.py [ACTION]`
+    - `ACTION`: Optional, any of the commands displayed when the script is run.
 
 ### Configuration
 
