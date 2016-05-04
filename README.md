@@ -5,10 +5,11 @@ A python script to backup and restore files from the working directory to an Ama
 By default, the script backups the following locations:
 
 - Pythonista:
-  - Files downloaded to and restored from the `~/Documents` directory
+  - Files downloaded to and restored from the `~/Documents` directory.
 - Linux/mac os:
-  - Files downloaded to and restored from the working directory, not the directory containing the script
-  - Example: From this directory, run `python s3sync.py`
+  - Files downloaded to and restored from the working directory, not the directory containing the script.
+  - Example: From this directory, run `python s3sync.py [ACTION]`
+    - ACTION: Optional, any of the commands displayed when the script is run.
 
 ### Configuration
 
@@ -16,7 +17,7 @@ By default, the script backups the following locations:
 - If missing, the script will prompt for information each time it is run.
 - See `s3sync.sample.conf` for a full list of options. [JSON Schema](http://json-schema.org/) is used for its schema documentation.
 
-Usage
+### Usage
 
 - Copy `s3sync.sample.conf` to the same directory as the `s3sync.py` script and rename to `s3sync.conf`
 - Update config file as appropriate.
