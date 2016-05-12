@@ -37,7 +37,7 @@ import urllib2
 
 logger = None
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -269,7 +269,7 @@ def show_progress(num, total):
 
 def exclude_from_remove(full_path):
     # match name and path
-    exact_list = ['/.Trash', '/Examples', '/.git']
+    exact_list = ['/.Trash', '/Examples', '/.git', '/'+BACKUP_NAME]
     # match name, in any path
     any_list = [SCRIPT_NAME, CONF_NAME]
 
@@ -369,7 +369,7 @@ def extract_tarfile(filename, dest_dir):
         fl = tarfile.open(filename, "r:bz2")
         fl.extractall(dest_dir)
         logger.info('Archive extracted.')
-    except IOError:
+    except IOError as e:
         logger.error('Archive extraction error.')
         logger.error(e)
 
@@ -465,8 +465,11 @@ def update(s3, bucket_name):
     #remove_archive(BACKUP_FILE)
 
 def restore(s3, bucket_name):
+    remove_archive(BACKUP_FILE)
+    download_archive(s3, bucket_name, BACKUP_NAME, BACKUP_FILE)
     delete_dir_content(BASE_DIR, exclude=exclude_from_remove, dry_run=False)
-    update(s3, bucket_name)
+    extract_tarfile(BACKUP_FILE, BASE_DIR)
+    #remove_archive(BACKUP_FILE)
 
 def backup(s3, bucket_name):
     remove_archive(BACKUP_FILE)
