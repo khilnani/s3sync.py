@@ -552,9 +552,11 @@ def get_default_user_selection():
 
 def get_user_selection():
     executed = False
+    
     if len(sys.argv) > 1:
         mode = sys.argv[1]
         executed = execute_action(mode)
+
     if not executed:
         if 'iP' in machine:
             get_ios_user_selection()
