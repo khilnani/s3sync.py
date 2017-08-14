@@ -37,7 +37,7 @@ import urllib2
 
 logger = None
 
-__version__ = '0.3.6'
+__version__ = '0.3.7'
 print 'Version: ' + __version__
 
 if os.environ.get('LC_CTYPE', '') == 'UTF-8':
@@ -539,6 +539,8 @@ def execute_action(action):
             snapshot(s3, bucket_name)
         else:
             logger.error('No matching action found for %s.' % action)
+            return False       
+    return True
 
 def get_ios_user_selection():
     options = OptionsTableView(data=actions_list, title='Select an action', callback=execute_action)
@@ -549,13 +551,15 @@ def get_default_user_selection():
     execute_action(mode)
 
 def get_user_selection():
+    executed = False
     if len(sys.argv) > 1:
         mode = sys.argv[1]
-        execute_action(mode)
-    elif 'iP' in machine:
-        get_ios_user_selection()
-    else:
-        get_default_user_selection()
+        executed = execute_action(mode)
+    if not executed:
+        if 'iP' in machine:
+            get_ios_user_selection()
+        else:
+            get_default_user_selection()
 
 ############################################
 
